@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { buildEditedPdfFromBytes } from "@/lib/pdfEditor";
 import type { FormFields } from "@/lib/formTypes";
 import { normalizeDocumentKind } from "@/lib/formTypes";
-import connectDB from "@/lib/mongodb";
+import connectDB, { getMongoIssue } from "@/lib/mongodb";
 import SavedPdf from "@/lib/models/SavedPdf";
 
 export async function POST(req: Request) {
@@ -77,9 +77,10 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error(e);
+    const issue = getMongoIssue(e);
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Server error" },
-      { status: 500 },
+      { error: issue.message },
+      { status: issue.status },
     );
   }
 }
@@ -108,6 +109,7 @@ export async function GET() {
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
+    const issue = getMongoIssue(e);
+    return NextResponse.json({ error: issue.message }, { status: issue.status });
   }
 }

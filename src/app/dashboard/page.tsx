@@ -1,4 +1,4 @@
-import connectDB from "@/lib/mongodb";
+import connectDB, { getMongoIssue } from "@/lib/mongodb";
 import SavedPdf from "@/lib/models/SavedPdf";
 import type { DashboardItem } from "@/lib/dashboardTypes";
 import { normalizeDocumentKind } from "@/lib/formTypes";
@@ -40,8 +40,8 @@ export default async function DashboardPage() {
         mailError: r.mailError || undefined,
         lastMailTo: r.lastMailTo || undefined,
       }));
-    } catch {
-      error = "Could not connect to MongoDB. Check MONGODB_URI and network.";
+    } catch (cause) {
+      error = getMongoIssue(cause).message;
     }
   }
 
