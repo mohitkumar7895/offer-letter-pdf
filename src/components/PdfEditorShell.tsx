@@ -13,6 +13,7 @@ import {
   downloadPdfBytes,
   pdfUint8ToBlob,
 } from "@/lib/pdfEditor";
+import { savePdfLocally } from "@/lib/localSavedPdfs";
 
 const TEMPLATE_PATH = "/sample.pdf";
 
@@ -109,20 +110,55 @@ export function PdfEditorShell() {
         id?: string;
       };
       if (!res.ok) {
-        throw new Error(data.error || "Request failed");
+        if (res.status < 500) {
+          throw new Error(data.error || "Request failed");
+        }
+
+        const bytes = await buildEditedPdf(TEMPLATE_PATH, form, {
+          offsetX,
+          offsetY,
+        });
+        const localItem = savePdfLocally({
+          form,
+          documentKind,
+          pdfBytes: bytes,
+        });
+        setServerMessage(
+          `Server save unavailable. Saved locally in this browser as ${localItem.id}.`,
+        );
+        return;
       }
       setServerMessage(`Saved to database. Record: ${data.id}`);
     } catch (e) {
-      setServerMessage(e instanceof Error ? e.message : "Save failed");
+      if (e instanceof Error) {
+        try {
+          const bytes = await buildEditedPdf(TEMPLATE_PATH, form, {
+            offsetX,
+            offsetY,
+          });
+          const localItem = savePdfLocally({
+            form,
+            documentKind,
+            pdfBytes: bytes,
+          });
+          setServerMessage(
+            `Database unavailable (${e.message}). Saved locally in this browser as ${localItem.id}.`,
+          );
+        } catch {
+          setServerMessage(e.message);
+        }
+      } else {
+        setServerMessage("Save failed");
+      }
     } finally {
       setServerSaving(false);
     }
   }, [form, documentKind, offsetX, offsetY]);
 
   return (
-    <div className="flex min-h-screen flex-1 flex-col bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
-      <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:px-8 lg:py-8">
-        <section className="w-full shrink-0 self-start lg:w-[min(100%,420px)] xl:w-[460px]">
+    <div className="flex min-h-screen flex-1 flex-col bg-linear-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+      <main className="mx-auto flex w-full max-w-400 flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:px-8 lg:py-8">
+        <section className="w-full shrink-0 self-start lg:w-[min(100%,420px)] xl:w-115">
           <FormPanel
             documentKind={documentKind}
             onDocumentKindChange={setDocumentKind}

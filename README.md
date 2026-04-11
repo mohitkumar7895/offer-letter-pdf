@@ -22,6 +22,12 @@ npm run dev:turbo
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Persistence notes
+
+- Database-backed save requires `MONGODB_URI` in local envs and in Vercel project env vars.
+- If MongoDB is unavailable at runtime, the editor now falls back to saving PDFs in browser local storage on that device so work is not lost.
+- Browser-local saves appear in the dashboard with a `Local` badge and can still be downloaded/opened, but they are not shared across devices or browsers.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

@@ -25,6 +25,7 @@ export default async function DashboardPage() {
         id: String(r._id),
         title: r.title,
         documentKind: normalizeDocumentKind(r.documentKind),
+        storage: "remote",
         refNo: r.form?.refNo,
         name: r.form?.name,
         createdAt:
@@ -46,18 +47,12 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen flex-1 bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+    <div className="min-h-screen flex-1 bg-linear-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-8">
         <h1 className="mb-8 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
           Saved letters
         </h1>
-        {error ? (
-          <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-            {error}
-          </div>
-        ) : (
-          <DashboardClient initialItems={items} />
-        )}
+        <DashboardClient initialItems={items} serverError={error} />
       </div>
     </div>
   );

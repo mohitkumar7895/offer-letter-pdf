@@ -1,15 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { DashboardItem } from "@/lib/dashboardTypes";
+import {
+  isLocalDashboardItem,
+  type DashboardItem,
+} from "@/lib/dashboardTypes";
 import {
   DOCUMENT_KIND_LABELS,
   type DocumentKind,
 } from "@/lib/formTypes";
 import { SendEmailModal } from "@/components/SendEmailModal";
+import {
+  downloadLocalSavedPdf,
+  mergeDashboardItems,
+  openLocalSavedPdf,
+  readLocalSavedPdfs,
+} from "@/lib/localSavedPdfs";
 
-type Props = { initialItems: DashboardItem[] };
+type Props = { initialItems: DashboardItem[]; serverError: string | null };
 
 type Filter = "all" | DocumentKind;
 
@@ -51,44 +60,83 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-export function DashboardClient({ initialItems }: Props) {
+export function DashboardClient({ initialItems, serverError }: Props) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
   const [activeMailId, setActiveMailId] = useState<string | null>(null);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [mailMsg, setMailMsg] = useState<string | null>(null);
+  const [localItems, setLocalItems] = useState(() => readLocalSavedPdfs());
+
+  useEffect(() => {
+    const syncLocalItems = () => {
+      setLocalItems(readLocalSavedPdfs());
+    };
+
+    syncLocalItems();
+    window.addEventListener("storage", syncLocalItems);
+    window.addEventListener("focus", syncLocalItems);
+
+    return () => {
+      window.removeEventListener("storage", syncLocalItems);
+      window.removeEventListener("focus", syncLocalItems);
+    };
+  }, []);
+
+  const items = useMemo(
+    () => mergeDashboardItems(initialItems, localItems),
+    [initialItems, localItems],
+  );
+
+  const activeItem = useMemo(
+    () => items.find((item) => item.id === activeMailId) ?? null,
+    [activeMailId, items],
+  );
 
   const stats = useMemo(() => {
-    const total = initialItems.length;
-    const offer = initialItems.filter((i) => i.documentKind === "offer").length;
-    const internship = initialItems.filter(
+    const total = items.length;
+    const offer = items.filter((i) => i.documentKind === "offer").length;
+    const internship = items.filter(
       (i) => i.documentKind === "internship",
     ).length;
-    const other = initialItems.filter((i) => i.documentKind === "other").length;
+    const other = items.filter((i) => i.documentKind === "other").length;
     return { total, offer, internship, other };
-  }, [initialItems]);
+  }, [items]);
 
   const filtered = useMemo(() => {
-    if (filter === "all") return initialItems;
-    return initialItems.filter((i) => i.documentKind === filter);
-  }, [initialItems, filter]);
+    if (filter === "all") return items;
+    return items.filter((i) => i.documentKind === filter);
+  }, [items, filter]);
 
-  if (initialItems.length === 0) {
+  if (items.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-slate-300 bg-white/80 p-12 text-center shadow-sm dark:border-slate-600 dark:bg-slate-900/50">
-        <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-          No saved letters yet
-        </p>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-          Save a letter from the editor and it will appear here instantly.
-        </p>
+      <div className="space-y-4">
+        {serverError ? (
+          <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+            {serverError} Local browser saves will still appear here on this device.
+          </div>
+        ) : null}
+        <div className="rounded-3xl border border-dashed border-slate-300 bg-white/80 p-12 text-center shadow-sm dark:border-slate-600 dark:bg-slate-900/50">
+          <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            No saved letters yet
+          </p>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            Save a letter from the editor and it will appear here instantly.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-8">
+      {serverError ? (
+        <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+          {serverError} Database records may be incomplete until the server connection is restored.
+        </div>
+      ) : null}
+
       <section className="rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/70 sm:p-6">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -166,11 +214,16 @@ export function DashboardClient({ initialItems }: Props) {
               className="group flex flex-col rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg dark:border-slate-700 dark:bg-slate-900/90 dark:hover:border-indigo-500/40"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <span
-                  className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${KIND_BADGE[row.documentKind]}`}
-                >
-                  {DOCUMENT_KIND_LABELS[row.documentKind]}
-                </span>
+                <div className="flex flex-wrap gap-2">
+                  <span
+                    className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${KIND_BADGE[row.documentKind]}`}
+                  >
+                    {DOCUMENT_KIND_LABELS[row.documentKind]}
+                  </span>
+                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600 ring-1 ring-inset ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
+                    {row.storage === "local" ? "Local" : "Database"}
+                  </span>
+                </div>
                 <time
                   className="text-xs tabular-nums text-slate-500 dark:text-slate-400"
                   dateTime={row.createdAt}
@@ -210,7 +263,7 @@ export function DashboardClient({ initialItems }: Props) {
                 </p>
               ) : null}
               <CardActions
-                id={row.id}
+                item={row}
                 onSendEmail={() => {
                   setActiveMailId(row.id);
                   setRecipientEmail("");
@@ -230,7 +283,7 @@ export function DashboardClient({ initialItems }: Props) {
           setActiveMailId(null);
         }}
         onSendNow={async () => {
-          if (!activeMailId) return;
+          if (!activeItem) return;
           const to = recipientEmail.trim();
           if (!to) {
             setMailMsg("Please enter recipient email.");
@@ -243,13 +296,17 @@ export function DashboardClient({ initialItems }: Props) {
           setSending(true);
           setMailMsg(null);
           try {
-            const fileUrl = `/api/pdfs/${activeMailId}/file`;
-            const anchor = document.createElement("a");
-            anchor.href = fileUrl;
-            anchor.download = "offer-letter.pdf";
-            document.body.appendChild(anchor);
-            anchor.click();
-            anchor.remove();
+            if (isLocalDashboardItem(activeItem)) {
+              downloadLocalSavedPdf(activeItem);
+            } else {
+              const fileUrl = `/api/pdfs/${activeItem.id}/file`;
+              const anchor = document.createElement("a");
+              anchor.href = fileUrl;
+              anchor.download = "offer-letter.pdf";
+              document.body.appendChild(anchor);
+              anchor.click();
+              anchor.remove();
+            }
 
             const subject = encodeURIComponent("Offer Letter");
             const body = encodeURIComponent(
@@ -269,7 +326,9 @@ export function DashboardClient({ initialItems }: Props) {
               "Gmail opened in new tab & PDF downloaded. Please attach and send.",
             );
             setActiveMailId(null);
-            router.refresh();
+            if (!isLocalDashboardItem(activeItem)) {
+              router.refresh();
+            }
           } catch (e) {
             setMailMsg(e instanceof Error ? e.message : "Failed to prepare email.");
           } finally {
@@ -294,7 +353,7 @@ function StatCard({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      <div className={`h-1 bg-gradient-to-r ${accent}`} aria-hidden />
+      <div className={`h-1 bg-linear-to-r ${accent}`} aria-hidden />
       <div className="px-5 py-4">
         <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
           {label}
@@ -308,31 +367,52 @@ function StatCard({
 }
 
 function CardActions({
-  id,
+  item,
   onSendEmail,
 }: {
-  id: string;
+  item: DashboardItem;
   onSendEmail: () => void;
 }) {
-  const downloadHref = `/api/pdfs/${id}/file`;
+  const downloadHref = item.storage === "remote" ? `/api/pdfs/${item.id}/file` : null;
 
   return (
     <div className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
       <div className="flex flex-wrap gap-2">
-        <a
-          href={downloadHref}
-          className="inline-flex flex-1 items-center justify-center rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 sm:flex-none"
-        >
-          Download PDF
-        </a>
-        <a
-          href={downloadHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
-        >
-          Open in tab
-        </a>
+        {isLocalDashboardItem(item) ? (
+          <>
+            <button
+              type="button"
+              onClick={() => downloadLocalSavedPdf(item)}
+              className="inline-flex flex-1 items-center justify-center rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 sm:flex-none"
+            >
+              Download PDF
+            </button>
+            <button
+              type="button"
+              onClick={() => openLocalSavedPdf(item)}
+              className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Open in tab
+            </button>
+          </>
+        ) : (
+          <>
+            <a
+              href={downloadHref ?? undefined}
+              className="inline-flex flex-1 items-center justify-center rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 sm:flex-none"
+            >
+              Download PDF
+            </a>
+            <a
+              href={downloadHref ?? undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Open in tab
+            </a>
+          </>
+        )}
         <button
           type="button"
           onClick={onSendEmail}

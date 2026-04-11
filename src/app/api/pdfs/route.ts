@@ -59,7 +59,7 @@ export async function POST(req: Request) {
       notifyEmail,
     });
 
-    let mailSent = false;
+    const mailSent = false;
     let mailError: string | undefined;
 
     if (sendMail) {
