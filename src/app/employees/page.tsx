@@ -1,21 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Employee } from "@/types/employee";
 
 type EmployeeResponse = { items?: Employee[]; error?: string };
 
 export default function EmployeesPage() {
+  const router = useRouter();
   const [items, setItems] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/employees", { cache: "no-store" });
+      if (res.status === 401) {
+        router.replace("/login");
+        return;
+      }
       const data = (await res.json()) as EmployeeResponse;
       if (!res.ok) {
         throw new Error(data.error || "Failed to load employees");
@@ -27,11 +33,11 @@ export default function EmployeesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

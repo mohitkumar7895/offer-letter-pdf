@@ -8,7 +8,7 @@ import {
   type DocumentKind,
   type FormFields,
 } from "@/lib/formTypes";
-import type { Employee } from "@/types/employee";
+import type { AccessRole, Employee } from "@/types/employee";
 import {
   buildEditedPdf,
   downloadPdfBytes,
@@ -18,7 +18,11 @@ import { savePdfLocally } from "@/lib/localSavedPdfs";
 
 const TEMPLATE_PATH = "/sample.pdf";
 
-export function PdfEditorShell() {
+type Props = {
+  userRole?: AccessRole | null;
+};
+
+export function PdfEditorShell({ userRole }: Props) {
   const [form, setForm] = useState<FormFields>(EMPTY_FORM);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
@@ -43,6 +47,12 @@ export function PdfEditorShell() {
   useEffect(() => () => revokeBlob(), [revokeBlob]);
 
   useEffect(() => {
+    const canReadEmployees = userRole === "Admin" || userRole === "HR" || userRole === "TL";
+    if (!canReadEmployees) {
+      setEmployees([]);
+      return;
+    }
+
     async function loadEmployees() {
       try {
         const res = await fetch("/api/employees", { cache: "no-store" });
@@ -55,7 +65,7 @@ export function PdfEditorShell() {
     }
 
     loadEmployees();
-  }, []);
+  }, [userRole]);
 
   useEffect(() => {
     if (!selectedEmployeeId) return;
