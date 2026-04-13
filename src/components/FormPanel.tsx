@@ -3,10 +3,14 @@ import {
   type DocumentKind,
   type FormFields,
 } from "@/lib/formTypes";
+import type { Employee } from "@/types/employee";
 
 type FormPanelProps = {
   documentKind: DocumentKind;
   onDocumentKindChange: (kind: DocumentKind) => void;
+  employees: Employee[];
+  selectedEmployeeId: string;
+  onSelectEmployee: (id: string) => void;
   form: FormFields;
   onChange: (field: keyof FormFields, value: string) => void;
   livePreview: boolean;
@@ -39,6 +43,9 @@ const KIND_OPTIONS = Object.keys(DOCUMENT_KIND_LABELS) as DocumentKind[];
 export function FormPanel({
   documentKind,
   onDocumentKindChange,
+  employees,
+  selectedEmployeeId,
+  onSelectEmployee,
   form,
   onChange,
   livePreview,
@@ -67,6 +74,24 @@ export function FormPanel({
       </div>
 
       <div className="flex max-h-[72vh] flex-col gap-4 overflow-y-auto overflow-x-hidden pr-1 [scrollbar-gutter:stable] lg:max-h-none lg:overflow-visible">
+        <label className="block shrink-0 text-sm">
+          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+            Autofill from employee
+          </span>
+          <select
+            value={selectedEmployeeId}
+            onChange={(e) => onSelectEmployee(e.target.value)}
+            className={fieldClass}
+          >
+            <option value="">Manual entry</option>
+            {employees.map((emp) => (
+              <option key={emp._id} value={emp._id}>
+                {emp.employeeName} · {emp.designation}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <label className="block shrink-0 text-sm">
           <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
             Document type

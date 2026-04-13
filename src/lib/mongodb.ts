@@ -13,7 +13,6 @@ type MongooseCache = {
 };
 
 declare global {
-  // eslint-disable-next-line no-var
   var _mongooseCache: MongooseCache | undefined;
 }
 
@@ -34,7 +33,12 @@ function validateMongoUri(uri: string): string {
     );
   }
 
-  if (/\?.+\/.+/.test(trimmed)) {
+  const queryStart = trimmed.indexOf("?");
+  const beforeQuery = queryStart >= 0 ? trimmed.slice(0, queryStart) : trimmed;
+  const pathStart = beforeQuery.indexOf("/", beforeQuery.indexOf("//") + 2);
+  const databasePath = pathStart >= 0 ? beforeQuery.slice(pathStart + 1) : "";
+
+  if (!databasePath) {
     throw new Error(
       "Invalid MONGODB_URI. The database name must come before query options. Example: mongodb+srv://user:pass@cluster.mongodb.net/pdfeditor?appName=offer-letter",
     );

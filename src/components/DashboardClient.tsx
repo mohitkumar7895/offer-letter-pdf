@@ -18,7 +18,20 @@ import {
   readLocalSavedPdfs,
 } from "@/lib/localSavedPdfs";
 
-type Props = { initialItems: DashboardItem[]; serverError: string | null };
+type EmployeeCounts = { Admin: number; Employee: number; TL: number; HR: number };
+
+type Props = {
+  initialItems: DashboardItem[];
+  serverError: string | null;
+  employeeTotal: number;
+  roleCounts: EmployeeCounts;
+  recentEmployees: Array<{
+    id: string;
+    name: string;
+    role: string;
+    designation: string;
+  }>;
+};
 
 type Filter = "all" | DocumentKind;
 
@@ -60,7 +73,13 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-export function DashboardClient({ initialItems, serverError }: Props) {
+export function DashboardClient({
+  initialItems,
+  serverError,
+  employeeTotal,
+  roleCounts,
+  recentEmployees,
+}: Props) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
   const [activeMailId, setActiveMailId] = useState<string | null>(null);
@@ -166,6 +185,44 @@ export function DashboardClient({ initialItems, serverError }: Props) {
         />
         <StatCard label="Other" value={stats.other} accent="from-slate-500 to-slate-700" />
       </div>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <StatCard label="Employees" value={employeeTotal} accent="from-cyan-500 to-cyan-700" />
+        <StatCard label="Admin" value={roleCounts.Admin} accent="from-rose-500 to-rose-700" />
+        <StatCard label="HR" value={roleCounts.HR} accent="from-amber-500 to-amber-700" />
+        <StatCard label="TL" value={roleCounts.TL} accent="from-blue-500 to-blue-700" />
+        <StatCard
+          label="Employee"
+          value={roleCounts.Employee}
+          accent="from-emerald-500 to-emerald-700"
+        />
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+          Recent employees
+        </h3>
+        {recentEmployees.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">No employee records yet.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {recentEmployees.map((emp) => (
+              <li
+                key={emp.id}
+                className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"
+              >
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white">{emp.name}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{emp.designation}</p>
+                </div>
+                <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  {emp.role}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">

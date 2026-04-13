@@ -15,8 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PDF Editor Admin",
-  description: "Offer and internship letters: edit sample.pdf, save, and email.",
+  title: "Employee Management System",
+  description:
+    "Employee management and offer letter automation built with Next.js.",
 };
 
 export default function RootLayout({
@@ -27,9 +28,26 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-slate-100 dark:bg-slate-950">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(() => {
+  try {
+    const stored = localStorage.getItem("ems-theme");
+    const theme = stored === "dark" || stored === "light"
+      ? stored
+      : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.setAttribute("data-theme", theme);
+  } catch {}
+})();`,
+          }}
+        />
+      </head>
+      <body className="min-h-full bg-transparent">
         <div className="flex min-h-screen">
           <AppSidebar />
           <div className="flex min-w-0 flex-1 flex-col">{children}</div>

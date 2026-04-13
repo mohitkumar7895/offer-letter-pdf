@@ -8,6 +8,7 @@ import {
   type DocumentKind,
   type FormFields,
 } from "@/lib/formTypes";
+import type { Employee } from "@/types/employee";
 import {
   buildEditedPdf,
   downloadPdfBytes,
@@ -19,6 +20,8 @@ const TEMPLATE_PATH = "/sample.pdf";
 
 export function PdfEditorShell() {
   const [form, setForm] = useState<FormFields>(EMPTY_FORM);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const offsetX = 0;
   const offsetY = 0;
   const [livePreview, setLivePreview] = useState(false);
@@ -38,6 +41,36 @@ export function PdfEditorShell() {
   }, []);
 
   useEffect(() => () => revokeBlob(), [revokeBlob]);
+
+  useEffect(() => {
+    async function loadEmployees() {
+      try {
+        const res = await fetch("/api/employees", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { items?: Employee[] };
+        setEmployees(data.items || []);
+      } catch {
+        setEmployees([]);
+      }
+    }
+
+    loadEmployees();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedEmployeeId) return;
+    const emp = employees.find((item) => item._id === selectedEmployeeId);
+    if (!emp) return;
+
+    setForm((prev) => ({
+      ...prev,
+      name: emp.employeeName,
+      address: emp.address.currentAddress,
+      subject: `Appointment for ${emp.designation}`,
+      email: emp.email,
+      mobile: emp.mobileNumber,
+    }));
+  }, [employees, selectedEmployeeId]);
 
   useEffect(() => {
     if (!livePreview) {
@@ -162,6 +195,9 @@ export function PdfEditorShell() {
           <FormPanel
             documentKind={documentKind}
             onDocumentKindChange={setDocumentKind}
+            employees={employees}
+            selectedEmployeeId={selectedEmployeeId}
+            onSelectEmployee={setSelectedEmployeeId}
             form={form}
             onChange={onFieldChange}
             livePreview={livePreview}
