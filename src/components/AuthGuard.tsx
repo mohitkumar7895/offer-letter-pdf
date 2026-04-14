@@ -24,7 +24,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
-  const isAuthRoute = pathname === "/login" || pathname.startsWith("/auth");
+  const isAuthRoute =
+    pathname === "/login" || pathname === "/register" || pathname.startsWith("/auth");
 
   useEffect(() => {
     if (isAuthRoute) {
