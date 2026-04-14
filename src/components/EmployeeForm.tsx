@@ -95,6 +95,9 @@ function buildDefaults(initial?: Employee): EmployeeFormValues {
     upiHolderName: initial.accountDetails.upiHolderName || "",
     aadharNumber: initial.documents.aadharNumber,
     panNumber: initial.documents.panNumber || "",
+    reportingTLId: initial.reportingTL?.id || "",
+    reportingTLName: initial.reportingTL?.employeeName || "",
+    reportingTLEmail: initial.reportingTL?.email || "",
   };
 }
 
@@ -109,6 +112,18 @@ export function EmployeeForm({ mode, initial, loading, onSubmit }: Props) {
 
   const [deptCategory, setDeptCategory] = useState<string>(initCategory);
   const [deptRole, setDeptRole] = useState<string>(initRole);
+  const [managers, setManagers] = useState<{ id: string; name: string; email: string }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/employees/managers")
+      .then((res) => res.json())
+      .then((data) => {
+        // Fetch full email info if needed, or assume data has it
+        // For now let's assume /api/employees/managers has name and we need email
+        setManagers(data.items || []);
+      })
+      .catch(console.error);
+  }, []);
 
   const {
     register,
@@ -129,6 +144,20 @@ export function EmployeeForm({ mode, initial, loading, onSubmit }: Props) {
   function handleRoleChange(role: string) {
     setDeptRole(role);
     setValue("designation", role, { shouldValidate: true });
+  }
+
+  function handleTLChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const tlId = e.target.value;
+    const tl = managers.find((m) => m.id === tlId);
+    if (tl) {
+      setValue("reportingTLId", tl.id);
+      setValue("reportingTLName", tl.name);
+      setValue("reportingTLEmail", (tl as any).email || ""); // Ensure email is in the API
+    } else {
+      setValue("reportingTLId", "");
+      setValue("reportingTLName", "");
+      setValue("reportingTLEmail", "");
+    }
   }
 
   const roleOptions =
@@ -285,6 +314,24 @@ export function EmployeeForm({ mode, initial, loading, onSubmit }: Props) {
               </option>
             ))}
           </select>
+        </Field>
+
+        <Field label="Assign Team Leader">
+          <select
+            className={`${fieldClass} truncate pr-8`}
+            value={register("reportingTLId").value || ""}
+            onChange={handleTLChange}
+          >
+            <option value="">— Unassigned —</option>
+            {managers.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+          <input type="hidden" {...register("reportingTLId")} />
+          <input type="hidden" {...register("reportingTLName")} />
+          <input type="hidden" {...register("reportingTLEmail")} />
         </Field>
       </section>
 

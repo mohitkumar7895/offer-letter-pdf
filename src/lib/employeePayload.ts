@@ -27,5 +27,8 @@ export function readEmployeeValuesFromFormData(formData: FormData): EmployeeForm
     upiHolderName: readString(formData, "upiHolderName"),
     aadharNumber: readString(formData, "aadharNumber"),
     panNumber: readString(formData, "panNumber"),
+    reportingTLId: readString(formData, "reportingTLId"),
+    reportingTLName: readString(formData, "reportingTLName"),
+    reportingTLEmail: readString(formData, "reportingTLEmail"),
   };
 }

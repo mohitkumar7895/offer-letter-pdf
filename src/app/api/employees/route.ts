@@ -7,7 +7,7 @@ import { mapEmployee } from "@/lib/employeeMapper";
 import { getAuthFromCookies } from "@/lib/auth";
 import Employee from "@/models/Employee";
 
-export async function GET() {
+export async function GET(_req: Request) {
   if (!process.env.MONGODB_URI) {
     return NextResponse.json({
       items: [],
@@ -24,8 +24,13 @@ export async function GET() {
     await connectDB();
 
     const query: any = {};
+    const url = new URL(_req.url || "", "http://localhost");
+    const filter = url.searchParams.get("filter");
+
     if (auth.role === "TL") {
       query["reportingTL.email"] = auth.email;
+    } else if (filter === "unassigned") {
+      query["reportingTL"] = { $exists: false };
     }
 
     const rows = await Employee.find(query).sort({ createdAt: -1 }).lean();
@@ -83,6 +88,11 @@ export async function POST(req: Request) {
         panNumber: values.panNumber || "",
         academicDocuments: [],
       },
+      reportingTL: values.reportingTLId ? {
+        id: values.reportingTLId,
+        employeeName: values.reportingTLName || "",
+        email: values.reportingTLEmail || "",
+      } : undefined,
     });
 
     const employeeId = String(created._id);

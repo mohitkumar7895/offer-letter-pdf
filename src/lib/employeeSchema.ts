@@ -51,6 +51,9 @@ export const employeeSchema = z.object({
     .refine((value) => !value || panRegex.test(value), {
       message: "Invalid PAN number (e.g. ABCDE1234F)",
     }),
+  reportingTLId: z.string().optional().or(z.literal("")),
+  reportingTLName: z.string().optional().or(z.literal("")),
+  reportingTLEmail: z.string().optional().or(z.literal("")),
 });
 
 export type EmployeeFormValues = z.infer<typeof employeeSchema>;

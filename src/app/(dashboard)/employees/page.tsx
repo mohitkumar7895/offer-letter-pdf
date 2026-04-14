@@ -13,11 +13,13 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [showUnassigned, setShowUnassigned] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/employees", { cache: "no-store" });
+      const url = showUnassigned ? "/api/employees?filter=unassigned" : "/api/employees";
+      const res = await fetch(url, { cache: "no-store" });
       if (res.status === 401) {
         router.replace("/login");
         return;
@@ -33,7 +35,7 @@ export default function EmployeesPage() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, showUnassigned]);
 
   useEffect(() => {
     load();
@@ -112,13 +114,24 @@ export default function EmployeesPage() {
           <KpiCard label="Employee" value={roleStats.Employee} />
         </section>
 
-        <section className="rounded-2xl border border-slate-200/80 bg-white/85 p-4 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/70">
+        <section className="flex flex-wrap items-center gap-4 rounded-2xl border border-slate-200/80 bg-white/85 p-4 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/70">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name, role, email..."
-            className="w-full rounded-xl border border-slate-300/80 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100 dark:border-slate-600 dark:bg-slate-800"
+            className="flex-1 min-w-[200px] rounded-xl border border-slate-300/80 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100 dark:border-slate-600 dark:bg-slate-800"
           />
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showUnassigned}
+              onChange={(e) => setShowUnassigned(e.target.checked)}
+              className="size-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+            />
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Only Show Unassigned
+            </span>
+          </label>
         </section>
 
         {loading ? <p className="text-sm text-slate-600 dark:text-slate-300">Loading employees...</p> : null}
@@ -134,6 +147,7 @@ export default function EmployeesPage() {
                   <th className="px-3 py-2">Email</th>
                   <th className="px-3 py-2">Designation</th>
                   <th className="px-3 py-2">Access Role</th>
+                  <th className="px-3 py-2">Reporting TL</th>
                   <th className="px-3 py-2">Actions</th>
                 </tr>
               </thead>
@@ -150,6 +164,18 @@ export default function EmployeesPage() {
                       <span className="rounded-full bg-cyan-500/10 px-2 py-1 text-xs font-semibold text-cyan-800 dark:text-cyan-300">
                         {item.accessRole}
                       </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      {item.reportingTL?.employeeName ? (
+                        <div className="flex flex-col">
+                          <span className="font-medium text-slate-800 dark:text-slate-200">
+                            {item.reportingTL.employeeName}
+                          </span>
+                          <span className="text-[10px] text-slate-500">{item.reportingTL.email}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 italic">Unassigned</span>
+                      )}
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex gap-2 flex-wrap">

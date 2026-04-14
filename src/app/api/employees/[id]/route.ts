@@ -94,6 +94,16 @@ export async function PUT(
     existing.documents.aadharNumber = values.aadharNumber;
     existing.documents.panNumber = values.panNumber || "";
 
+    if (values.reportingTLId) {
+      existing.reportingTL = {
+        id: values.reportingTLId,
+        employeeName: values.reportingTLName || "",
+        email: values.reportingTLEmail || "",
+      };
+    } else {
+      existing.reportingTL = undefined;
+    }
+
     const employeeId = String(existing._id);
 
     const aadharFile = formData.get("aadharFile");
