@@ -2,19 +2,22 @@
 
 import { useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
+import type { AccessRole } from "@/types/employee";
 
 type Props = {
   initialTheme: "light" | "dark";
+  userRole?: AccessRole;
   children: React.ReactNode;
 };
 
-export function AppShell({ initialTheme, children }: Props) {
+export function AppShell({ initialTheme, userRole, children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <div className="flex min-h-screen">
       <AppSidebar
         initialTheme={initialTheme}
+        userRole={userRole}
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
       />

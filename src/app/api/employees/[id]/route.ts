@@ -4,6 +4,7 @@ import { employeeSchema } from "@/lib/employeeSchema";
 import { readEmployeeValuesFromFormData } from "@/lib/employeePayload";
 import { saveUploadedFile } from "@/utils/upload";
 import { mapEmployee } from "@/lib/employeeMapper";
+import { getAuthFromCookies } from "@/lib/auth";
 import Employee from "@/models/Employee";
 
 export async function GET(
@@ -11,12 +12,22 @@ export async function GET(
   ctx: RouteContext<"/api/employees/[id]">,
 ) {
   try {
+    const auth = await getAuthFromCookies();
+    if (!auth) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     await connectDB();
     const { id } = await ctx.params;
     const row = await Employee.findById(id).lean();
 
     if (!row) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    }
+
+    // Security check: TL only sees their employees
+    if (auth.role === "TL" && row.reportingTL?.email !== auth.email) {
+      return NextResponse.json({ error: "Access Denied" }, { status: 403 });
     }
 
     return NextResponse.json({ item: mapEmployee(row) });
@@ -31,12 +42,22 @@ export async function PUT(
   ctx: RouteContext<"/api/employees/[id]">,
 ) {
   try {
+    const auth = await getAuthFromCookies();
+    if (!auth) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     await connectDB();
     const { id } = await ctx.params;
 
     const existing = await Employee.findById(id);
     if (!existing) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    }
+
+    // Security check: TL only updates their employees
+    if (auth.role === "TL" && existing.reportingTL?.email !== auth.email) {
+      return NextResponse.json({ error: "Access Denied" }, { status: 403 });
     }
 
     const formData = await req.formData();
@@ -148,13 +169,26 @@ export async function DELETE(
   ctx: RouteContext<"/api/employees/[id]">,
 ) {
   try {
+    const auth = await getAuthFromCookies();
+    if (!auth) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     await connectDB();
     const { id } = await ctx.params;
-    const deleted = await Employee.findByIdAndDelete(id).lean();
 
-    if (!deleted) {
+    // Check existing before deleting for permission check
+    const existing = await Employee.findById(id);
+    if (!existing) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
+
+    // Security check: TL only deletes their employees
+    if (auth.role === "TL" && existing.reportingTL?.email !== auth.email) {
+      return NextResponse.json({ error: "Access Denied" }, { status: 403 });
+    }
+
+    await Employee.findByIdAndDelete(id);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

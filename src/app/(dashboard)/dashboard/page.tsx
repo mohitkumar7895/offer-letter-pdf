@@ -4,6 +4,7 @@ import type { DashboardItem } from "@/lib/dashboardTypes";
 import { normalizeDocumentKind } from "@/lib/formTypes";
 import { DashboardClient } from "@/components/DashboardClient";
 import Employee from "@/models/Employee";
+import { getAuthFromCookies } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +15,14 @@ export default async function DashboardPage() {
   const roleCounts = { Admin: 0, Employee: 0, TL: 0, HR: 0 };
   let recentEmployees: { id: string; name: string; role: string; designation: string }[] = [];
 
+  const auth = await getAuthFromCookies();
+
   if (!process.env.MONGODB_URI) {
     error = "Add MONGODB_URI to .env.local to enable the dashboard.";
   } else {
     try {
       await connectDB();
+
       const rows = await SavedPdf.find()
         .sort({ createdAt: -1 })
         .limit(100)
@@ -46,17 +50,26 @@ export default async function DashboardPage() {
         lastMailTo: r.lastMailTo || undefined,
       }));
 
-      employeeTotal = await Employee.countDocuments();
+      // Role-based filtering for employee stats
+      const filter: any = {};
+      if (auth?.role === "TL") {
+        filter["reportingTL.email"] = auth.email;
+      }
+
+      employeeTotal = await Employee.countDocuments(filter);
+      
       const roleRaw = await Employee.aggregate([
+        { $match: filter },
         { $group: { _id: "$accessRole", count: { $sum: 1 } } },
       ]);
+      
       for (const row of roleRaw) {
         if (row._id in roleCounts) {
           roleCounts[row._id as keyof typeof roleCounts] = row.count;
         }
       }
 
-      const recentRows = await Employee.find()
+      const recentRows = await Employee.find(filter)
         .sort({ createdAt: -1 })
         .limit(5)
         .lean();

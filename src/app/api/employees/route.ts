@@ -4,6 +4,7 @@ import { employeeSchema } from "@/lib/employeeSchema";
 import { readEmployeeValuesFromFormData } from "@/lib/employeePayload";
 import { saveUploadedFile } from "@/utils/upload";
 import { mapEmployee } from "@/lib/employeeMapper";
+import { getAuthFromCookies } from "@/lib/auth";
 import Employee from "@/models/Employee";
 
 export async function GET() {
@@ -15,8 +16,19 @@ export async function GET() {
   }
 
   try {
+    const auth = await getAuthFromCookies();
+    if (!auth) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     await connectDB();
-    const rows = await Employee.find().sort({ createdAt: -1 }).lean();
+
+    const query: any = {};
+    if (auth.role === "TL") {
+      query["reportingTL.email"] = auth.email;
+    }
+
+    const rows = await Employee.find(query).sort({ createdAt: -1 }).lean();
     return NextResponse.json({
       items: rows.map((row) => mapEmployee(row)),
     });

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import type { AccessRole } from "@/types/employee";
 
 const itemBase =
   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition";
@@ -13,11 +14,12 @@ const active =
 
 type Props = {
   initialTheme: "light" | "dark";
+  userRole?: AccessRole;
   mobileOpen: boolean;
   onCloseMobile: () => void;
 };
 
-export function AppSidebar({ initialTheme, mobileOpen, onCloseMobile }: Props) {
+export function AppSidebar({ initialTheme, userRole, mobileOpen, onCloseMobile }: Props) {
   const pathname = usePathname();
   const onEditor = pathname === "/" || pathname.startsWith("/offer-letter");
   const onDashboard = pathname === "/dashboard";
@@ -91,56 +93,61 @@ export function AppSidebar({ initialTheme, mobileOpen, onCloseMobile }: Props) {
           </span>
           Employees
         </Link>
-        <Link
-          href="/clients"
-          onClick={onCloseMobile}
-          className={`${itemBase} ${onClients ? active : inactive}`}
-        >
-          <span
-            className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-            aria-hidden
-          >
-            <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </span>
-          Clients
-        </Link>
-        <Link
-          href="/offer-letter"
-          onClick={onCloseMobile}
-          className={`${itemBase} ${onEditor ? active : inactive}`}
-        >
-          <span
-            className="flex size-8 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300"
-            aria-hidden
-          >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              />
-            </svg>
-          </span>
-          Offer letter
-        </Link>
-        <Link
-          href="/tls"
-          onClick={onCloseMobile}
-          className={`${itemBase} ${onTls ? active : inactive}`}
-        >
-          <span
-            className="flex size-8 items-center justify-center rounded-lg bg-violet-500/15 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
-            aria-hidden
-          >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-3-3v6m-4 5h10M4 6h16" />
-            </svg>
-          </span>
-          TL Management
-        </Link>
+
+        {(userRole === "Admin" || userRole === "HR") && (
+          <>
+            <Link
+              href="/clients"
+              onClick={onCloseMobile}
+              className={`${itemBase} ${onClients ? active : inactive}`}
+            >
+              <span
+                className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                aria-hidden
+              >
+                <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </span>
+              Clients
+            </Link>
+            <Link
+              href="/offer-letter"
+              onClick={onCloseMobile}
+              className={`${itemBase} ${onEditor ? active : inactive}`}
+            >
+              <span
+                className="flex size-8 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300"
+                aria-hidden
+              >
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </span>
+              Offer letter
+            </Link>
+            <Link
+              href="/tls"
+              onClick={onCloseMobile}
+              className={`${itemBase} ${onTls ? active : inactive}`}
+            >
+              <span
+                className="flex size-8 items-center justify-center rounded-lg bg-violet-500/15 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
+                aria-hidden
+              >
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-3-3v6m-4 5h10M4 6h16" />
+                </svg>
+              </span>
+              TL Management
+            </Link>
+          </>
+        )}
       </nav>
 
       <div className="space-y-3 border-t border-slate-200 p-4 dark:border-slate-800">
